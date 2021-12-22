@@ -32,3 +32,28 @@
     margin: 1rem;
     cursor: pointer;
 }
+.sorted > .triangle-bottom{
+    display: block;
+}
+.sorted-reverse > .triangle-top{
+    display: block;
+}
+.unsorted > .triangle-bottom, .unsorted > .triangle-top{
+    display: none;
+}
+
+.triangle-top{
+    border: 0.3rem solid transparent;
+    border-top: 0;
+    border-bottom: 0.6rem solid #484848;
+    display: none;
+    margin: auto;
+}
+.triangle-bottom{
+    border: 0.3rem solid transparent;
+    border-bottom: 0;
+    border-top: 0.6rem solid #484848;
+    display: none;
+    margin: auto;
+
+}

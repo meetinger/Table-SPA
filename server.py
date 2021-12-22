@@ -14,6 +14,7 @@ conn = psycopg2.connect(
     port=config['db_port']
 )
 
+
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/":
@@ -40,35 +41,56 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
         if self.path == "/getData":
             content_length = int(self.headers['Content-Length'])
             body = self.rfile.read(content_length)
-            print(body)
+
+            payload = json.loads(body.decode('utf-8'))
+            print(payload)
+
+            params = payload['params']
 
             cursor = conn.cursor()
-            cursor.execute('''SELECT * FROM table_datarow''')
+
+            cursor.execute('SELECT * FROM table_datarow')
 
             fetch_all = cursor.fetchall()
-
+            print(fetch_all)
             data_rows = [DataRow(i) for i in fetch_all]
 
-            json_str = json.dumps(data_rows, cls=DataRowJSONEncoder)
+            res = []
 
-            print(json_str)
+            if payload['method'] == 'search':
+                condition = params['condition']
+                column = params['column']
+                search_value = params['searchValue']
+
+                if condition != "has" and column != "name":
+                    search_value = float(search_value)
+
+                def filter_func(x):
+                    x_dict = x.to_dict()
+                    if condition == 'equal':
+                        return x_dict[column] == search_value
+                    elif condition == 'more':
+                        return x_dict[column] > search_value
+                    elif condition == 'less':
+                        return x_dict[column] < search_value
+                    elif condition == 'has':
+                        return search_value in x_dict[column]
+
+                res = list(filter(filter_func, data_rows))
+            elif payload['method'] == 'getAll':
+                res = data_rows
+
+            print(res)
+
+            data = {'data': res[params['leftBound']:params['rightBound']], 'lengthAll': len(res)}
+
+            print(data)
+            json_str = json.dumps(data, cls=DataRowJSONEncoder)
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json_str.encode(encoding='utf-8'))
-
-            # print([str(i) for i in data_rows])
-
-
-        # self.send_response(200)
-        # self.send_header('Content-type', 'text/static')
-        # self.end_headers()
-        # response = BytesIO()
-        # response.write(b'This is POST request. ')
-        # response.write(b'Received: ')
-        # response.write(body)
-        # self.wfile.write(response.getvalue())
 
 
 httpd = HTTPServer(('localhost', config['http_port']), SimpleHTTPRequestHandler)

@@ -12,7 +12,7 @@
         Поиск
         <div style="display: flex">
             <select name="column-select" id="column-select">
-                <option value="name">Имя</option>
+                <option value="name">Название</option>
                 <option value="amount">Количество</option>
                 <option value="distance">Расстояние</option>
             </select>
@@ -29,9 +29,22 @@
     </div>
     <div class="table-header">
         <div class="row-element">Дата</div>
-        <div onclick="sortData('name')" class="row-element">Название</div>
-        <div onclick="sortData('amount')" class="row-element">Количество</div>
-        <div onclick="sortData('distance')" class="row-element">Расстояние</div>
+        <div onclick="sortData('name', true)" class="row-element">
+            <div id="name-sorted" class="unsorted">
+                <div class="triangle-top"></div><div class="triangle-bottom"></div>
+            </div>Название
+        </div>
+        <div onclick="sortData('amount', true)" class="row-element">
+            <div id="amount-sorted" class="unsorted">
+                <div class="triangle-top"></div><div class="triangle-bottom"></div>
+            </div>Количество
+        </div>
+        <div onclick="sortData('distance', true)" class="row-element">
+            <div id="distance-sorted" class="unsorted">
+                <div class="triangle-top"></div>
+                <div class="triangle-bottom"></div>
+            </div>Расстояние
+        </div>
     </div>
     <div class="table-body" id="table-body">
 
@@ -46,9 +59,17 @@
 
     let dataCopy = []
 
-    let dataCopyForPagination = []
+    let sortOldKey = ''
 
     const maxRowsPerPage = 2;
+
+    let leftBound = 0;
+
+    let rightBound = maxRowsPerPage;
+
+    let paginationLength = 0;
+
+    let lastPayload = {};
 
     function buildTableBody(data) {
         let tableBody = document.getElementById("table-body")
@@ -69,7 +90,10 @@
         }
     }
 
-    function sortData(key){
+    function sortData(key, buildTable = false){
+        if (key === ''){
+            return
+        }
         const compare = (a, b) => {
             if(typeof a[key] === "string"){
                 return a[key].localeCompare(b[key])
@@ -77,20 +101,42 @@
                 return (a[key]-b[key])
             }
         }
-        data.sort(compare)
-        updateTable(data, false)
+        if(sortOldKey !== '' && sortOldKey !== key) {
+            let oldHeader = document.getElementById(sortOldKey + "-sorted")
+            oldHeader.className = "unsorted"
+        }
+        let header = document.getElementById(key+"-sorted")
+        if(key === sortOldKey){
+            data.reverse()
+            if (header.className === "sorted-reverse"){
+                header.className = "sorted"
+            }else {
+                header.className = "sorted-reverse"
+            }
+        }else {
+            data.sort(compare)
+            header.className = "sorted"
+        }
+        sortOldKey = key
+        if(buildTable){
+            buildTableBody(data)
+        }
     }
 
-    buildTableBody(data)
+    // buildTableBody(data)
 
-    function getData() {
+    function getData(payload) {
+        lastPayload = payload;
         let req = new XMLHttpRequest()
         req.onload = () => {
             if (req.status === 200) {
-                let rawData = JSON.parse(req.response)
-                dataCopy = JSON.parse(req.response)
+                let rawData = JSON.parse(req.response)['data']
+                dataCopy = JSON.parse(req.response)['data']
+                paginationLength = JSON.parse(req.response)['lengthAll']
                 data = rawData
-                updateTable(data)
+                buildPagination(paginationLength)
+                sortData(sortOldKey, false)
+                buildTableBody(data)
             } else {
                 alert('Server Error '+req.status)
             }
@@ -98,11 +144,17 @@
         req.open("POST", "/getData", true);
         req.setRequestHeader("Content-Type", "application/json; charset=utf-8");
 
-        req.send();
+        req.send(JSON.stringify(payload));
     }
 
     function reset(){
+        sortOldKey = ''
+        getData({method: "getAll", params: {leftBound: leftBound, rightBound: rightBound}})
         data = [...dataCopy]
+        let tableHeaders = [...document.getElementsByClassName("sorted"), ...document.getElementsByClassName("sorted-reverse")]
+        for(let i of tableHeaders){
+            i.className = "unsorted"
+        }
         buildTableBody(data)
     }
 
@@ -112,68 +164,36 @@
         let condition = document.getElementById("condition-select").value
         let searchValue = document.getElementById("search-field").value
 
-        if(condition !== "has" && column !== "name"){
-            searchValue = parseFloat(searchValue)
-        }
+        getData({method: "search", params: {column: column, condition: condition, searchValue: searchValue, leftBound:0, rightBound:maxRowsPerPage}})
 
-
-        const filterFunc = (x) => {
-            switch (condition) {
-                case "equal":
-                    return x[column] === searchValue;
-                case "more":
-                    return x[column] > searchValue;
-                case "less":
-                    return x[column] < searchValue;
-                case "has":
-                    return x[column].indexOf(searchValue) !==-1
-            }
-
-        }
-
-        data = data.filter(filterFunc)
-        updateTable(data)
+        buildTableBody(data)
     }
 
-    function buildPagination(data){
+    function buildPagination(length){
         let paginationSection = document.getElementById("pagination-section")
         paginationSection.innerHTML = ""
-        if(data.length < maxRowsPerPage){
+        if(length < maxRowsPerPage){
             return
         }
-        for(let i = 1; i < data.length/maxRowsPerPage+1;++i){
+        for(let i = 1; i < length/maxRowsPerPage+1;++i){
             let element = document.createElement("div")
             let startIndex = (i-1)*maxRowsPerPage
-            let endIndex = Math.min(i*maxRowsPerPage, data.length)
+            let endIndex = Math.min(i*maxRowsPerPage, length)
             element.innerHTML = '<div>'+(startIndex+1)+'-'+endIndex+'</div>'
-            element.addEventListener("click", ()=>{showRows(startIndex, endIndex)})
+            let params = Object.assign({}, lastPayload['params'])
+            params['leftBound'] = startIndex
+            params['rightBound'] = endIndex
+            let payload = Object.assign({}, lastPayload)
+            payload['params'] = params
+            // lastPayload['params']['leftBound'] = startIndex
+            // lastPayload['params']['rightBound'] = endIndex
+            element.addEventListener("click", ()=>{getData(payload)})
             element.classList.add("pagination-element")
             paginationSection.appendChild(element)
         }
     }
 
-    function showRows(startIndex, endIndex, forceFromData = false){
-        if(dataCopyForPagination.length === 0 || forceFromData) {
-            if(!forceFromData) {
-                dataCopyForPagination = [...data]
-            }
-            data = data.slice(startIndex, Math.min(data.length, endIndex))
-        }else {
-            data = dataCopyForPagination.slice(startIndex, Math.min(dataCopyForPagination.length, endIndex))
-        }
-        buildTableBody(data)
-    }
-
-    function updateTable(data, updatePagination = true){
-        if(updatePagination) {
-            buildPagination(data)
-        }
-        showRows(0, maxRowsPerPage, true)
-    }
-
-    getData()
-
-
+    getData({method: "getAll", params: {leftBound: leftBound, rightBound: rightBound}})
 
 </script>
 </html>
