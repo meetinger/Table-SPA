@@ -29,17 +29,17 @@
     </div>
     <div class="table-header">
         <div class="row-element">Дата</div>
-        <div onclick="sortData('name', true)" class="row-element">
+        <div onclick="sortData('name', true, true)" class="row-element">
             <div id="name-sorted" class="unsorted">
                 <div class="triangle-top"></div><div class="triangle-bottom"></div>
             </div>Название
         </div>
-        <div onclick="sortData('amount', true)" class="row-element">
+        <div onclick="sortData('amount', true, true)" class="row-element">
             <div id="amount-sorted" class="unsorted">
                 <div class="triangle-top"></div><div class="triangle-bottom"></div>
             </div>Количество
         </div>
-        <div onclick="sortData('distance', true)" class="row-element">
+        <div onclick="sortData('distance', true, true)" class="row-element">
             <div id="distance-sorted" class="unsorted">
                 <div class="triangle-top"></div>
                 <div class="triangle-bottom"></div>
@@ -90,7 +90,7 @@
         }
     }
 
-    function sortData(key, buildTable = false){
+    function sortData(key, buildTable = false, toggleSort=false){
         if (key === ''){
             return
         }
@@ -106,7 +106,7 @@
             oldHeader.className = "unsorted"
         }
         let header = document.getElementById(key+"-sorted")
-        if(key === sortOldKey){
+        if(key === sortOldKey && toggleSort){
             data.reverse()
             if (header.className === "sorted-reverse"){
                 header.className = "sorted"
@@ -135,7 +135,7 @@
                 paginationLength = JSON.parse(req.response)['lengthAll']
                 data = rawData
                 buildPagination(paginationLength)
-                sortData(sortOldKey, false)
+                sortData(sortOldKey, false, false)
                 buildTableBody(data)
             } else {
                 alert('Server Error '+req.status)
