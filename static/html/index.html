@@ -8,8 +8,8 @@
 </head>
 <body>
 <div class="main">
-    <div>
-        Поиск
+    <div class="">
+        <div>Поиск</div>
         <div style="display: flex">
             <select name="column-select" id="column-select">
                 <option value="name">Название</option>
@@ -27,27 +27,44 @@
             <button onclick="reset()">Сбросить</button>
         </div>
     </div>
-    <div class="table-header">
-        <div class="row-element">Дата</div>
-        <div onclick="sortData('name', true, true)" class="row-element">
-            <div id="name-sorted" class="unsorted">
-                <div class="triangle-top"></div><div class="triangle-bottom"></div>
-            </div>Название
-        </div>
-        <div onclick="sortData('amount', true, true)" class="row-element">
-            <div id="amount-sorted" class="unsorted">
-                <div class="triangle-top"></div><div class="triangle-bottom"></div>
-            </div>Количество
-        </div>
-        <div onclick="sortData('distance', true, true)" class="row-element">
-            <div id="distance-sorted" class="unsorted">
-                <div class="triangle-top"></div>
-                <div class="triangle-bottom"></div>
-            </div>Расстояние
-        </div>
-    </div>
-    <div class="table-body" id="table-body">
+    <div class="table-container">
+        <div class="table-header">
+            <div class="row-element" style="cursor: default"><div class="table-header-text">Дата</div></div>
+            <div onclick="sortData('name', true, true)" class="row-element">
+                <div class="table-header-text">
+                    Название
+                </div>
+                <div id="name-sorted" class="unsorted">
+                    <div class="triangle-top"></div>
+                    <div class="triangle-bottom"></div>
+                </div>
 
+            </div>
+            <div onclick="sortData('amount', true, true)" class="row-element">
+                <div class="table-header-text">
+                    Количество
+                </div>
+                <div id="amount-sorted" class="unsorted">
+                    <div class="triangle-top"></div>
+                    <div class="triangle-bottom"></div>
+                </div>
+
+            </div>
+            <div onclick="sortData('distance', true, true)" class="row-element">
+                <div class="table-header-text">
+                    Расстояние
+                </div>
+                <div id="distance-sorted" class="unsorted">
+                    <div class="triangle-top"></div>
+                    <div class="triangle-bottom"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="table-body" id="table-body">
+
+        </div>
     </div>
     <div id="pagination-section">
 
@@ -90,35 +107,35 @@
         }
     }
 
-    function sortData(key, buildTable = false, toggleSort=false){
-        if (key === ''){
+    function sortData(key, buildTable = false, toggleSort = false) {
+        if (key === '') {
             return
         }
         const compare = (a, b) => {
-            if(typeof a[key] === "string"){
+            if (typeof a[key] === "string") {
                 return a[key].localeCompare(b[key])
-            }else{
-                return (a[key]-b[key])
+            } else {
+                return (a[key] - b[key])
             }
         }
-        if(sortOldKey !== '' && sortOldKey !== key) {
+        if (sortOldKey !== '' && sortOldKey !== key) {
             let oldHeader = document.getElementById(sortOldKey + "-sorted")
             oldHeader.className = "unsorted"
         }
-        let header = document.getElementById(key+"-sorted")
-        if(key === sortOldKey && toggleSort){
+        let header = document.getElementById(key + "-sorted")
+        if (key === sortOldKey && toggleSort) {
             data.reverse()
-            if (header.className === "sorted-reverse"){
+            if (header.className === "sorted-reverse") {
                 header.className = "sorted"
-            }else {
+            } else {
                 header.className = "sorted-reverse"
             }
-        }else {
+        } else {
             data.sort(compare)
             header.className = "sorted"
         }
         sortOldKey = key
-        if(buildTable){
+        if (buildTable) {
             buildTableBody(data)
         }
     }
@@ -138,7 +155,7 @@
                 sortData(sortOldKey, false, false)
                 buildTableBody(data)
             } else {
-                alert('Server Error '+req.status)
+                alert('Server Error ' + req.status)
             }
         }
         req.open("POST", "/getData", true);
@@ -147,39 +164,48 @@
         req.send(JSON.stringify(payload));
     }
 
-    function reset(){
+    function reset() {
         sortOldKey = ''
         getData({method: "getAll", params: {leftBound: leftBound, rightBound: rightBound}})
         data = [...dataCopy]
         let tableHeaders = [...document.getElementsByClassName("sorted"), ...document.getElementsByClassName("sorted-reverse")]
-        for(let i of tableHeaders){
+        for (let i of tableHeaders) {
             i.className = "unsorted"
         }
         buildTableBody(data)
     }
 
-    function find(){
+    function find() {
         data = [...dataCopy]
         let column = document.getElementById("column-select").value
         let condition = document.getElementById("condition-select").value
         let searchValue = document.getElementById("search-field").value
 
-        getData({method: "search", params: {column: column, condition: condition, searchValue: searchValue, leftBound:0, rightBound:maxRowsPerPage}})
+        getData({
+            method: "search",
+            params: {
+                column: column,
+                condition: condition,
+                searchValue: searchValue,
+                leftBound: 0,
+                rightBound: maxRowsPerPage
+            }
+        })
 
         buildTableBody(data)
     }
 
-    function buildPagination(length){
+    function buildPagination(length) {
         let paginationSection = document.getElementById("pagination-section")
         paginationSection.innerHTML = ""
-        if(length < maxRowsPerPage){
+        if (length < maxRowsPerPage) {
             return
         }
-        for(let i = 1; i < length/maxRowsPerPage+1;++i){
+        for (let i = 1; i < length / maxRowsPerPage + 1; ++i) {
             let element = document.createElement("div")
-            let startIndex = (i-1)*maxRowsPerPage
-            let endIndex = Math.min(i*maxRowsPerPage, length)
-            element.innerHTML = '<div>'+(startIndex+1)+'-'+endIndex+'</div>'
+            let startIndex = (i - 1) * maxRowsPerPage
+            let endIndex = Math.min(i * maxRowsPerPage, length)
+            element.innerHTML = '<div>' + (startIndex + 1) + '-' + endIndex + '</div>'
             let params = Object.assign({}, lastPayload['params'])
             params['leftBound'] = startIndex
             params['rightBound'] = endIndex
@@ -187,7 +213,9 @@
             payload['params'] = params
             // lastPayload['params']['leftBound'] = startIndex
             // lastPayload['params']['rightBound'] = endIndex
-            element.addEventListener("click", ()=>{getData(payload)})
+            element.addEventListener("click", () => {
+                getData(payload)
+            })
             element.classList.add("pagination-element")
             paginationSection.appendChild(element)
         }

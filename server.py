@@ -37,13 +37,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(font.read())
 
     def do_POST(self):
-        print(self.path)
+        # print(self.path)
         if self.path == "/getData":
             content_length = int(self.headers['Content-Length'])
             body = self.rfile.read(content_length)
 
             payload = json.loads(body.decode('utf-8'))
-            print(payload)
+            # print(payload)
 
             params = payload['params']
 
@@ -52,7 +52,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             cursor.execute('SELECT * FROM table_datarow')
 
             fetch_all = cursor.fetchall()
-            print(fetch_all)
+
             data_rows = [DataRow(i) for i in fetch_all]
 
             res = []
@@ -64,7 +64,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
                 if condition != "has" and column != "name":
                     search_value = float(search_value)
-
+                # cursor.execute('SELECT * FROM table_datarow WHERE %s = %s', (column, search_value)) doesn't work
                 def filter_func(x):
                     x_dict = x.to_dict()
                     if condition == 'equal':
@@ -80,11 +80,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             elif payload['method'] == 'getAll':
                 res = data_rows
 
-            print(res)
+            # print(res)
 
             data = {'data': res[params['leftBound']:params['rightBound']], 'lengthAll': len(res)}
 
-            print(data)
+            # print(data)
             json_str = json.dumps(data, cls=DataRowJSONEncoder)
 
             self.send_response(200)

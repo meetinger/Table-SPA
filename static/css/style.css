@@ -5,7 +5,15 @@
     font-family: "Open Sans Bold", serif;
 }
 .table-header > .row-element{
-
+    display: flex;
+    justify-content: space-between;
+}
+.table-header-text{
+    display: flex;
+    align-items: center;
+}
+.table-container{
+    border: 0.1rem solid black;
 }
 .table-row{
     display: flex;
@@ -18,7 +26,7 @@
 .row-element{
     width: 25%;
     display: flex;
-    justify-content: center;
+    justify-content: left;
     border: 0.1rem solid black;
     padding: 0.5rem;
 }
@@ -31,29 +39,37 @@
 .pagination-element{
     margin: 1rem;
     cursor: pointer;
+    text-decoration: underline;
+    color: blue;
 }
 .sorted > .triangle-bottom{
     display: block;
+    border-top: 0.6rem solid #000000;
 }
 .sorted-reverse > .triangle-top{
     display: block;
+    border-bottom: 0.6rem solid #000000;
 }
-.unsorted > .triangle-bottom, .unsorted > .triangle-top{
-    display: none;
+.unsorted > .triangle-top{
+    border-bottom: 0.6rem solid #bdbdbd;
 }
+
+.unsorted > .triangle-bottom{
+    border-top: 0.6rem solid #bdbdbd;
+}
+
 
 .triangle-top{
     border: 0.3rem solid transparent;
     border-top: 0;
-    border-bottom: 0.6rem solid #484848;
-    display: none;
-    margin: auto;
+    border-bottom: 0.6rem solid #bdbdbd;
+    /*display: none;*/
+    margin-bottom: 0.5rem;
 }
 .triangle-bottom{
     border: 0.3rem solid transparent;
     border-bottom: 0;
-    border-top: 0.6rem solid #484848;
-    display: none;
-    margin: auto;
-
+    border-top: 0.6rem solid #bdbdbd;
+    /*display: none;*/
+    margin-top: 0.5rem;
 }
