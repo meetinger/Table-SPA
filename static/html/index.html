@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Table</title>
+    <link rel="stylesheet" href="fonts.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="main">
+    <div>
+        Поиск
+        <div style="display: flex">
+            <select name="column-select" id="column-select">
+                <option value="name">Имя</option>
+                <option value="amount">Количество</option>
+                <option value="distance">Расстояние</option>
+            </select>
+            <select name="condition-select" id="condition-select">
+                <option value="equal">Равно</option>
+                <option value="has">Содержит</option>
+                <option value="more">Больше</option>
+                <option value="less">Меньше</option>
+            </select>
+            <input type="text" id="search-field">
+            <button onclick="find()">Найти</button>
+            <button onclick="reset()">Сбросить</button>
+        </div>
+    </div>
+    <div class="table-header">
+        <div class="row-element">Дата</div>
+        <div onclick="sortData('name')" class="row-element">Название</div>
+        <div onclick="sortData('amount')" class="row-element">Количество</div>
+        <div onclick="sortData('distance')" class="row-element">Расстояние</div>
+    </div>
+    <div class="table-body" id="table-body">
+
+    </div>
+    <div id="pagination-section">
+
+    </div>
+</div>
+</body>
+<script>
+    let data = []
+
+    let dataCopy = []
+
+    let dataCopyForPagination = []
+
+    const maxRowsPerPage = 2;
+
+    function buildTableBody(data) {
+        let tableBody = document.getElementById("table-body")
+        tableBody.innerHTML = "";
+        for (let i of data) {
+            let tableRow = document.createElement("div")
+            tableRow.classList.add("table-row")
+            for (let j in i) {
+                if (j === "id") {
+                    continue
+                }
+                let element = document.createElement("div")
+                element.classList.add("row-element")
+                element.innerText = i[j]
+                tableRow.appendChild(element)
+            }
+            tableBody.appendChild(tableRow)
+        }
+    }
+
+    function sortData(key){
+        const compare = (a, b) => {
+            if(typeof a[key] === "string"){
+                return a[key].localeCompare(b[key])
+            }else{
+                return (a[key]-b[key])
+            }
+        }
+        data.sort(compare)
+        updateTable(data, false)
+    }
+
+    buildTableBody(data)
+
+    function getData() {
+        let req = new XMLHttpRequest()
+        req.onload = () => {
+            if (req.status === 200) {
+                let rawData = JSON.parse(req.response)
+                dataCopy = JSON.parse(req.response)
+                data = rawData
+                updateTable(data)
+            } else {
+                alert('Server Error '+req.status)
+            }
+        }
+        req.open("POST", "/getData", true);
+        req.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+
+        req.send();
+    }
+
+    function reset(){
+        data = [...dataCopy]
+        buildTableBody(data)
+    }
+
+    function find(){
+        data = [...dataCopy]
+        let column = document.getElementById("column-select").value
+        let condition = document.getElementById("condition-select").value
+        let searchValue = document.getElementById("search-field").value
+
+        if(condition !== "has" && column !== "name"){
+            searchValue = parseFloat(searchValue)
+        }
+
+
+        const filterFunc = (x) => {
+            switch (condition) {
+                case "equal":
+                    return x[column] === searchValue;
+                case "more":
+                    return x[column] > searchValue;
+                case "less":
+                    return x[column] < searchValue;
+                case "has":
+                    return x[column].indexOf(searchValue) !==-1
+            }
+
+        }
+
+        data = data.filter(filterFunc)
+        updateTable(data)
+    }
+
+    function buildPagination(data){
+        let paginationSection = document.getElementById("pagination-section")
+        paginationSection.innerHTML = ""
+        if(data.length < maxRowsPerPage){
+            return
+        }
+        for(let i = 1; i < data.length/maxRowsPerPage+1;++i){
+            let element = document.createElement("div")
+            let startIndex = (i-1)*maxRowsPerPage
+            let endIndex = Math.min(i*maxRowsPerPage, data.length)
+            element.innerHTML = '<div>'+(startIndex+1)+'-'+endIndex+'</div>'
+            element.addEventListener("click", ()=>{showRows(startIndex, endIndex)})
+            element.classList.add("pagination-element")
+            paginationSection.appendChild(element)
+        }
+    }
+
+    function showRows(startIndex, endIndex, forceFromData = false){
+        if(dataCopyForPagination.length === 0 || forceFromData) {
+            if(!forceFromData) {
+                dataCopyForPagination = [...data]
+            }
+            data = data.slice(startIndex, Math.min(data.length, endIndex))
+        }else {
+            data = dataCopyForPagination.slice(startIndex, Math.min(dataCopyForPagination.length, endIndex))
+        }
+        buildTableBody(data)
+    }
+
+    function updateTable(data, updatePagination = true){
+        if(updatePagination) {
+            buildPagination(data)
+        }
+        showRows(0, maxRowsPerPage, true)
+    }
+
+    getData()
+
+
+
+</script>
+</html>

@@ -1,0 +1,34 @@
+.table-header{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    font-family: "Open Sans Bold", serif;
+}
+.table-header > .row-element{
+
+}
+.table-row{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+.main{
+    margin: 3rem;
+}
+.row-element{
+    width: 25%;
+    display: flex;
+    justify-content: center;
+    border: 0.1rem solid black;
+    padding: 0.5rem;
+}
+.table-header > .row-element{
+    cursor: pointer;
+}
+#pagination-section{
+    display: flex;
+}
+.pagination-element{
+    margin: 1rem;
+    cursor: pointer;
+}
