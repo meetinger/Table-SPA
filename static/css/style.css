@@ -35,6 +35,7 @@
 }
 #pagination-section{
     display: flex;
+    flex-wrap: wrap;
 }
 .pagination-element{
     margin: 1rem;

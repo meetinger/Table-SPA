@@ -80,7 +80,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     elif condition == 'less':
                         return x_dict[column] < search_value
                     elif condition == 'has':
-                        return search_value in x_dict[column]
+                        return str(search_value) in str(x_dict[column])
 
                 res = list(filter(filter_func, data_rows))
             elif payload['method'] == 'getAll':

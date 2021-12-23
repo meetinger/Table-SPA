@@ -1,4 +1,5 @@
 import random
+import string
 from random import randrange
 
 import psycopg2
@@ -38,7 +39,7 @@ d2 = datetime.strptime('1/1/2021 4:50 AM', '%m/%d/%Y %I:%M %p')
 
 for i in range(index_start, index_end, 1):
     cursor.execute("INSERT INTO table_datarow (id, date, name, amount, distance) VALUES (%s, %s, %s, %s, %s)",
-                   (i, random_date(d1, d2), "foo" + str(i), random.randint(0, 20), random.randint(0, 20)))
+                   (i, random_date(d1, d2), ''.join(random.choices(string.ascii_lowercase+string.digits, k=7)), random.randint(0, 20), random.randint(0, 20)))
 
 
 conn.commit()
