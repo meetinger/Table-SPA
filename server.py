@@ -52,17 +52,13 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
             cursor = conn.cursor()
 
-            res = []
+            cursor.execute('SELECT count(*) FROM table_datarow')
+            length_all = cursor.fetchone()[0]
 
             if payload['method'] == 'search':
                 condition = params['condition']
                 column = params['column']
                 search_value = params['searchValue']
-
-                # if condition != "has" and column != "name":
-                #     search_value = int(search_value)
-
-                # Previously, there was a filter function with get all the rows of the table, but this is ineffective
 
                 cast_dict = {
                     'name': str,
@@ -71,13 +67,24 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 }
 
                 query_dict = {
-                    'equal': 'SELECT * FROM table_datarow WHERE {} = %(search_value)s',
-                    'more': 'SELECT * FROM table_datarow WHERE {} > %(search_value)s',
-                    'less': 'SELECT * FROM table_datarow WHERE {} < %(search_value)s',
-                    'has': 'SELECT * FROM table_datarow WHERE {} ~ %(search_value)s'
+                    'equal': (
+                        'SELECT * FROM table_datarow WHERE {} = %(search_value)s LIMIT %(limit)s OFFSET %(offset)s',
+                        'SELECT count(*) FROM table_datarow WHERE {} = %(search_value)s'),
+                    'more': (
+                        'SELECT * FROM table_datarow WHERE {} > %(search_value)s LIMIT %(limit)s OFFSET %(offset)s',
+                        'SELECT count(*) FROM table_datarow WHERE {} > %(search_value)s'
+                    ),
+                    'less': (
+                        'SELECT * FROM table_datarow WHERE {} < %(search_value)s LIMIT %(limit)s OFFSET %(offset)s',
+                        'SELECT count(*) FROM table_datarow WHERE {} < %(search_value)s'
+                    ),
+                    'has': ('SELECT * FROM table_datarow WHERE {} ~ %(search_value)s LIMIT %(limit)s OFFSET %(offset)s',
+                            'SELECT count(*) FROM table_datarow WHERE {} ~ %(search_value)s'
+                            )
                 }
 
-                query = sql.SQL(query_dict[condition])
+                query = sql.SQL(query_dict[condition][0])
+                query_count = sql.SQL(query_dict[condition][1])
 
                 search_value_casted = cast_dict[column](search_value)
 
@@ -88,20 +95,24 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     cursor.close()
                     return
 
-                cursor.execute(query.format(sql.Identifier(column)), {'search_value': search_value_casted})
+                cursor.execute(query_count.format(sql.Identifier(column)), {'search_value': search_value_casted})
+
+                length_all = cursor.fetchone()[0]
+
+                cursor.execute(query.format(sql.Identifier(column)), {'search_value': search_value_casted,
+                                                                      'limit': params['rightBound'] - params[
+                                                                          'leftBound'], 'offset': params['leftBound']})
 
             elif payload['method'] == 'getAll':
-                cursor.execute('SELECT * FROM table_datarow')
+                cursor.execute('SELECT * FROM table_datarow LIMIT %(limit)s OFFSET %(offset)s',
+                               {'limit': params['rightBound'] - params['leftBound'], 'offset': params['leftBound']})
 
             fetch_all = cursor.fetchall()
             data_rows = [DataRow(i) for i in fetch_all]
             res = data_rows
 
-            # print(res)
+            data = {'data': res, 'lengthAll': length_all}
 
-            data = {'data': res[params['leftBound']:params['rightBound']], 'lengthAll': len(res)}
-
-            # print(data)
             json_str = json.dumps(data, cls=DataRowJSONEncoder)
 
             self.send_response(200)
