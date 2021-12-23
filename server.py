@@ -69,6 +69,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
                 # cursor.execute('SELECT * FROM table_datarow WHERE %s = %s', (column, search_value)) doesn't work
                 # use workaround
+                # slow on big DB
 
                 def filter_func(x):
                     x_dict = x.to_dict()

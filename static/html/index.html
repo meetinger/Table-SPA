@@ -74,8 +74,6 @@
 <script>
     let data = []
 
-    let dataCopy = []
-
     let sortOldKey = ''
 
     const maxRowsPerPage = 10;
@@ -147,9 +145,9 @@
         let req = new XMLHttpRequest()
         req.onload = () => {
             if (req.status === 200) {
-                let rawData = JSON.parse(req.response)['data']
-                dataCopy = JSON.parse(req.response)['data']
-                paginationLength = JSON.parse(req.response)['lengthAll']
+                let parsedJSON = JSON.parse(req.response)
+                let rawData = parsedJSON['data']
+                paginationLength = parsedJSON['lengthAll']
                 data = rawData
                 buildPagination(paginationLength)
                 sortData(sortOldKey, false, false)

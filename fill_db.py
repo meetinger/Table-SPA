@@ -36,11 +36,10 @@ def random_date(start, end):
 d1 = datetime.strptime('1/1/2000 1:30 PM', '%m/%d/%Y %I:%M %p')
 d2 = datetime.strptime('1/1/2021 4:50 AM', '%m/%d/%Y %I:%M %p')
 
-for i in range(index_start, index_end, 2):
+for i in range(index_start, index_end, 1):
     cursor.execute("INSERT INTO table_datarow (id, date, name, amount, distance) VALUES (%s, %s, %s, %s, %s)",
                    (i, random_date(d1, d2), "foo" + str(i), random.randint(0, 20), random.randint(0, 20)))
-    cursor.execute("INSERT INTO table_datarow (id, date, name, amount, distance) VALUES (%s, %s, %s, %s, %s)",
-                   (i + 1, random_date(d1, d2), "bar" + str(i+1), random.randint(0, 20), random.randint(0, 20)))
+
 
 conn.commit()
 conn.close()
