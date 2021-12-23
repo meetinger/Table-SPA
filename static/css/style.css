@@ -73,3 +73,9 @@
     /*display: none;*/
     margin-top: 0.5rem;
 }
+
+.search-section{
+    display: inline-block;
+    /*border: 0.1rem solid black;*/
+    padding: 1rem 0;
+}

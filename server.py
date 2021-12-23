@@ -35,6 +35,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             font = open('static/fonts/' + self.path, 'rb')
             self.wfile.write(font.read())
+        else:
+            self.send_response(404)
 
     def do_POST(self):
         # print(self.path)
@@ -63,8 +65,11 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 search_value = params['searchValue']
 
                 if condition != "has" and column != "name":
-                    search_value = float(search_value)
+                    search_value = int(search_value)
+
                 # cursor.execute('SELECT * FROM table_datarow WHERE %s = %s', (column, search_value)) doesn't work
+                # use workaround
+
                 def filter_func(x):
                     x_dict = x.to_dict()
                     if condition == 'equal':
@@ -91,6 +96,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json_str.encode(encoding='utf-8'))
+            cursor.close()
+        else:
+            self.send_response(404)
 
 
 httpd = HTTPServer(('localhost', config['http_port']), SimpleHTTPRequestHandler)
