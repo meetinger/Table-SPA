@@ -2,8 +2,9 @@ import codecs
 import json
 
 import psycopg2
-from http.server import HTTPServer, BaseHTTPRequestHandler
 
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from psycopg2 import sql
 from DataRow import DataRow
 from DataRowJSONEncoder import DataRowJSONEncoder
 from config import config
@@ -51,12 +52,6 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
             cursor = conn.cursor()
 
-            cursor.execute('SELECT * FROM table_datarow')
-
-            fetch_all = cursor.fetchall()
-
-            data_rows = [DataRow(i) for i in fetch_all]
-
             res = []
 
             if payload['method'] == 'search':
@@ -64,27 +59,43 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 column = params['column']
                 search_value = params['searchValue']
 
-                if condition != "has" and column != "name":
-                    search_value = int(search_value)
+                # if condition != "has" and column != "name":
+                #     search_value = int(search_value)
 
-                # cursor.execute('SELECT * FROM table_datarow WHERE %s = %s', (column, search_value)) doesn't work
-                # use workaround
-                # slow on big DB
+                # Previously, there was a filter function with get all the rows of the table, but this is ineffective
 
-                def filter_func(x):
-                    x_dict = x.to_dict()
-                    if condition == 'equal':
-                        return x_dict[column] == search_value
-                    elif condition == 'more':
-                        return x_dict[column] > search_value
-                    elif condition == 'less':
-                        return x_dict[column] < search_value
-                    elif condition == 'has':
-                        return str(search_value) in str(x_dict[column])
+                cast_dict = {
+                    'name': str,
+                    'amount': int,
+                    'distance': int
+                }
 
-                res = list(filter(filter_func, data_rows))
+                query_dict = {
+                    'equal': 'SELECT * FROM table_datarow WHERE {} = %s',
+                    'more': 'SELECT * FROM table_datarow WHERE {} > %s',
+                    'less': 'SELECT * FROM table_datarow WHERE {} < %s',
+                    'has': 'SELECT * FROM table_datarow WHERE {} ~ %s'
+                }
+
+                query = sql.SQL(query_dict[condition])
+
+                search_value_casted = cast_dict[column](search_value)
+
+                if isinstance(search_value_casted, int) and condition == 'has':
+                    self.send_response(400)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    cursor.close()
+                    return
+
+                cursor.execute(query.format(sql.Identifier(column)), (search_value_casted,))
+
             elif payload['method'] == 'getAll':
-                res = data_rows
+                cursor.execute('SELECT * FROM table_datarow')
+
+            fetch_all = cursor.fetchall()
+            data_rows = [DataRow(i) for i in fetch_all]
+            res = data_rows
 
             # print(res)
 
