@@ -71,10 +71,10 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 }
 
                 query_dict = {
-                    'equal': 'SELECT * FROM table_datarow WHERE {} = %s',
-                    'more': 'SELECT * FROM table_datarow WHERE {} > %s',
-                    'less': 'SELECT * FROM table_datarow WHERE {} < %s',
-                    'has': 'SELECT * FROM table_datarow WHERE {} ~ %s'
+                    'equal': 'SELECT * FROM table_datarow WHERE {} = %(search_value)s',
+                    'more': 'SELECT * FROM table_datarow WHERE {} > %(search_value)s',
+                    'less': 'SELECT * FROM table_datarow WHERE {} < %(search_value)s',
+                    'has': 'SELECT * FROM table_datarow WHERE {} ~ %(search_value)s'
                 }
 
                 query = sql.SQL(query_dict[condition])
@@ -88,7 +88,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                     cursor.close()
                     return
 
-                cursor.execute(query.format(sql.Identifier(column)), (search_value_casted,))
+                cursor.execute(query.format(sql.Identifier(column)), {'search_value': search_value_casted})
 
             elif payload['method'] == 'getAll':
                 cursor.execute('SELECT * FROM table_datarow')
