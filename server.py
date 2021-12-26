@@ -41,6 +41,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         # print(self.path)
+
         if self.path == "/getData":
             content_length = int(self.headers['Content-Length'])
             body = self.rfile.read(content_length)
@@ -48,17 +49,33 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             payload = json.loads(body.decode('utf-8'))
             # print(payload)
 
-            params = payload['params']
+            method = payload.get('method', '')
+
+            params = payload.get('params', {})
+
+            if not payload or method == '' or not params:
+                self.send_error(400, "Invalid request!")
+                return
 
             cursor = conn.cursor()
 
             cursor.execute('SELECT count(*) FROM table_datarow')
             length_all = cursor.fetchone()[0]
 
-            if payload['method'] == 'search':
-                condition = params['condition']
-                column = params['column']
-                search_value = params['searchValue']
+            max_rows_limit = 100
+
+            if method == 'search':
+
+                condition = params.get('condition', None)
+                column = params.get('column', None)
+                search_value = params.get('searchValue', None)
+                left_bound = params.get('leftBound', None)
+                right_bound = params.get('rightBound', None)
+
+                if condition is None or column is None or search_value is None or left_bound is None or right_bound is None:
+                    self.send_error(400, "Invalid request!")
+                    cursor.close()
+                    return
 
                 cast_dict = {
                     'name': str,
@@ -89,9 +106,7 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 search_value_casted = cast_dict[column](search_value)
 
                 if isinstance(search_value_casted, int) and condition == 'has':
-                    self.send_response(400)
-                    self.send_header('Content-type', 'application/json')
-                    self.end_headers()
+                    self.send_error(400, "Invalid search request!")
                     cursor.close()
                     return
 
@@ -99,13 +114,39 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 
                 length_all = cursor.fetchone()[0]
 
-                cursor.execute(query.format(sql.Identifier(column)), {'search_value': search_value_casted,
-                                                                      'limit': params['rightBound'] - params[
-                                                                          'leftBound'], 'offset': params['leftBound']})
+                rows_limit = abs(right_bound - left_bound)
+                rows_offset = abs(left_bound)
 
-            elif payload['method'] == 'getAll':
+                if rows_limit > max_rows_limit:
+                    self.send_error(400, "Invalid bounds!")
+                    cursor.close()
+                    return
+
+                cursor.execute(query.format(sql.Identifier(column)), {'search_value': search_value_casted,
+                                                                      'limit': rows_limit,
+                                                                      'offset': rows_offset})
+
+            elif method == 'getAll':
+                left_bound = params.get('leftBound', None)
+                right_bound = params.get('rightBound', None)
+
+                if left_bound is None or right_bound is None:
+                    self.send_error(400, "Invalid request!")
+                    cursor.close()
+                    return
+
+                rows_limit = abs(right_bound - left_bound)
+                rows_offset = abs(left_bound)
+
+                if rows_limit > max_rows_limit:
+                    self.send_error(400, "Invalid bounds!")
+                    cursor.close()
+                    return
+
                 cursor.execute('SELECT * FROM table_datarow LIMIT %(limit)s OFFSET %(offset)s',
-                               {'limit': params['rightBound'] - params['leftBound'], 'offset': params['leftBound']})
+                               {'limit': rows_limit, 'offset': rows_offset})
+
+            # TODO Remove DataRow Object
 
             fetch_all = cursor.fetchall()
             data_rows = [DataRow(i) for i in fetch_all]
@@ -121,7 +162,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json_str.encode(encoding='utf-8'))
             cursor.close()
         else:
-            self.send_response(404)
+            self.send_error(404, 'Method not found!')
+            return
 
 
 httpd = HTTPServer(('localhost', config['http_port']), SimpleHTTPRequestHandler)

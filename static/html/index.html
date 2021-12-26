@@ -152,11 +152,8 @@
                 buildPagination(paginationLength)
                 sortData(sortOldKey, false, false)
                 buildTableBody(data)
-            } else if (req.status === 400){
-                alert("Bad request!")
-            }
-            else {
-                alert('Server Error ' + req.status)
+            } else{
+                alert(req.status+"\n"+req.statusText)
             }
         }
         req.open("POST", "/getData", true);
